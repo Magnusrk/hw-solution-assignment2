@@ -16,26 +16,45 @@ public abstract class AST{
    expressions with And (Conjunction), Or (Disjunction), and
    Not (Negation) */
 
-abstract class Expr extends AST{}
+abstract class Expr extends AST{
+    abstract boolean eval(Environment environment);
+}
 
 class Conjunction extends Expr{
     Expr e1,e2;
     Conjunction(Expr e1,Expr e2){this.e1=e1; this.e2=e2;}
+    public boolean eval(Environment environment){
+        return ((e1.eval(environment)) && (e2.eval(environment)));
+    }
 }
 
 class Disjunction extends Expr{
     Expr e1,e2;
     Disjunction(Expr e1,Expr e2){this.e1=e1; this.e2=e2;}
+
+    public boolean eval(Environment environment){
+        return ((e1.eval(environment)) || (e2.eval(environment)));
+    }
 }
 
 class Negation extends Expr{
     Expr e;
     Negation(Expr e){this.e=e;}
+    public boolean eval(Environment environment){
+        return (!e.eval(environment));
+    }
 }
 
 class Signal extends Expr{
     String varname; // a signal is just identified by a name 
     Signal(String varname){this.varname=varname;}
+    String getVarname(){
+        return varname;
+    }
+
+    public boolean eval(Environment environment){
+        return environment.getVariable(varname);
+    }
 }
 
 // Latches have an input and output signal
@@ -47,6 +66,13 @@ class Latch extends AST{
 	this.inputname=inputname;
 	this.outputname=outputname;
     }
+    public void initialize(Environment environment){
+        environment.setVariable(outputname, false);
+    }
+
+    public void nextCycle(Environment environment){
+        environment.setVariable(outputname, environment.getVariable(inputname));
+    }
 }
 
 // An Update is any of the lines " signal = expression "
@@ -56,6 +82,10 @@ class Update extends AST{
     String name;
     Expr e;
     Update(String name, Expr e){this.e=e; this.name=name;}
+
+    public void eval(Environment environment){
+        environment.setVariable(name, e.eval(environment));
+    }
 }
 
 /* A Trace is a signal and an array of Booleans, for instance each
@@ -71,6 +101,18 @@ class Trace extends AST{
     Trace(String signal, Boolean[] values){
 	this.signal=signal;
 	this.values=values;
+    }
+
+    public String toString(){
+        String stringValues = "";
+        for (Boolean b: values){
+            if (b){
+                stringValues += "1";
+            } else {
+                stringValues += "0";
+            }
+        }
+        return stringValues;
     }
 }
 
@@ -114,5 +156,60 @@ class Circuit extends AST{
 	this.latches=latches;
 	this.updates=updates;
 	this.siminputs=siminputs;
+    this.simlength=siminputs.get(0).values.length;
+    }
+
+    public void runSimulator(Environment environment){
+        initialize(environment);
+        for (int i = 0; i < simlength; i++){
+            nextCycle(environment, i);
+        }
+        printOutputs();
+    }
+
+    public void initialize(Environment environment){
+        if (simlength == 0){
+            error("siminput was empty");
+        }
+        for (Trace t : siminputs) {
+            if (t.values[0] == null){
+                error("siminput 0-th value equals null");
+            }
+            environment.setVariable(t.signal, t.values[0]);
+        }
+        for (Latch l : latches) {
+            l.initialize(environment);
+        }
+        for (Update u : updates) {
+            u.eval(environment);
+        }
+        for(String s : outputs ){
+            simoutputs.add(new Trace(s, (Boolean[]) []));
+        }
+        //System.out.println(environment.toString());
+    }
+    public void nextCycle(Environment environment, int i){
+        if (siminputs.size() == 0){
+            error("siminput was empty");
+        }
+        for (Trace t : siminputs) {
+            if (t.values[i] == null){
+                error("siminput i-th value equals null");
+            }
+            environment.setVariable(t.signal, t.values[i]);
+        }
+        for (Latch l : latches) {
+            l.nextCycle(environment);
+        }
+        for (Update u : updates) {
+            u.eval(environment);
+        }
+        for(String s : outputs){
+            sy
+            System.out.println(environment.getVariable(s));
+        }
+        //System.out.println(environment.toString());
+    }
+    public void printOutputs(){
     }
 }
