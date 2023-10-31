@@ -183,8 +183,9 @@ class Circuit extends AST{
         for (Update u : updates) {
             u.eval(environment);
         }
+        simoutputs = new ArrayList<Trace>();
         for(String s : outputs ){
-            simoutputs.add(new Trace(s, (Boolean[]) []));
+            simoutputs.add(new Trace(s, new Boolean[simlength]));
         }
         //System.out.println(environment.toString());
     }
@@ -205,11 +206,17 @@ class Circuit extends AST{
             u.eval(environment);
         }
         for(String s : outputs){
-            sy
-            System.out.println(environment.getVariable(s));
+            //System.out.println(environment.getVariable(s));
+            Trace t = simoutputs.stream().filter(a -> a.signal.equals(s)).findFirst().get();
+            t.values[i] = environment.getVariable(s);
+
         }
         //System.out.println(environment.toString());
     }
     public void printOutputs(){
+        for(Trace out : simoutputs){
+            System.out.println(out.toString() + " " + out.signal);
+            System.out.println("<br>");
+        }
     }
 }
