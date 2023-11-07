@@ -215,7 +215,7 @@ class Circuit extends AST{
     }
     public void printOutputs(){
         for(Trace out : simoutputs){
-            System.out.println(out.toString() + " " + out.signal);
+            System.out.println(out.toString() + " " + ": <b>" + out.signal + "</b>");
             System.out.println("<br>");
         }
     }
