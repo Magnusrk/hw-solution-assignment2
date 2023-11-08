@@ -3,7 +3,7 @@
 #classpathoption = -cp 'antlr-4.13.0-complete.jar:.'  # if you are using mac/linux
 #classpathoption = -cp 'antlr-4.13.0-complete.jar;.'  # if you are using windows
 
-classpathoption = -cp 'antlr-4.13.0-complete.jar;.'
+classpathoption =   # nothing if already installed
 
 
 antlr4 = java $(classpathoption) org.antlr.v4.Tool

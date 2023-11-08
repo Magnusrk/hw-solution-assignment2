@@ -2,7 +2,7 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.List;
 import java.util.ArrayList;
-
+import java.util.Arrays;
 public abstract class AST{
     public void error(String msg){
 	System.err.println(msg);
@@ -156,24 +156,32 @@ class Circuit extends AST{
 	this.latches=latches;
 	this.updates=updates;
 	this.siminputs=siminputs;
-    this.simlength=siminputs.get(0).values.length;
+    this.simlength=0;
     }
 
     public void runSimulator(Environment environment){
         initialize(environment);
+
         for (int i = 0; i < simlength; i++){
             nextCycle(environment, i);
+            validateSignals();
         }
         printOutputs();
     }
 
     public void initialize(Environment environment){
-        if (simlength == 0){
+        if(siminputs.size() == 0){
             error("siminput was empty");
         }
+        simlength = siminputs.get(0).values.length;
+
+
         for (Trace t : siminputs) {
             if (t.values[0] == null){
                 error("siminput 0-th value equals null");
+            }
+            if(t.values.length != simlength){
+                error("siminputs not same length!");
             }
             environment.setVariable(t.signal, t.values[0]);
         }
@@ -211,8 +219,48 @@ class Circuit extends AST{
             t.values[i] = environment.getVariable(s);
 
         }
+
         //System.out.println(environment.toString());
     }
+
+    private void validateSignals(){
+
+        String[] inputArray = inputs.toArray(new String[0]);
+        String[] updatesArray = new String[updates.size()];
+        String[] latchesArray = new String[latches.size()];
+
+        for(int i = 0; i < updates.size(); i++){
+            updatesArray[i] = updates.get(i).name;
+        }
+        for(int i = 0; i < latches.size(); i++){
+            String name = latches.get(i).outputname;
+        }
+
+        for(Trace sinput : siminputs){
+            boolean a = Arrays.asList(inputArray).contains(sinput.signal);
+            boolean b = Arrays.asList(updatesArray).contains(sinput.signal);
+            boolean c = Arrays.asList(latchesArray).contains(sinput.signal);
+            /*
+            boolean d = Arrays.asList(inputArray).contains(sinput.signal);
+            boolean e = Arrays.asList(updatesArray).contains(sinput.signal);
+            boolean f = Arrays.asList(latchesArray).contains(sinput.signal);
+            */
+            if( !(a || b || c) || ( a && b || a && c|| c && b) ){
+                error("Invalid signal!! " + sinput.signal);
+            }
+
+        }
+        /*
+        previousInputArray = inputArray
+        previousUpdatesArray = updatesArray
+        previousLatchesArray = latchesArray
+
+         */
+
+    }
+
+
+
     public void printOutputs(){
         for(Trace out : simoutputs){
             System.out.println(out.toString() + " " + ": <b>" + out.signal + "</b>");
