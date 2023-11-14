@@ -11,9 +11,12 @@ Red -> RedM
 .update
 
 Red = !RedM && Button
-Green  = !Red 
-PGreen = Red 
-PRed   = !PGreen
+
+Green = Red
+PGreen = Red
+
+
+
 
 .simulate Button=1100110111
 

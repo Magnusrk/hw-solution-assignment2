@@ -1,6 +1,6 @@
 .hardware vonNeumann
 
-.inputs Read a0 a1 a2 a3 b0 b1 b2 b3 
+.inputs Read a0 a1 a2 a3 b0 b1 b2 b3
 .outputs     s0 s1 s2 s3 Overflow
 
 .latches
@@ -47,4 +47,3 @@ Read=100000000
   b1=100000000
   b2=100000000
   b3=000000000
-  

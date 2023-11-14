@@ -3,6 +3,7 @@ import java.util.Map.Entry;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.*;
 public abstract class AST{
     public void error(String msg){
 	System.err.println(msg);
@@ -18,6 +19,7 @@ public abstract class AST{
 
 abstract class Expr extends AST{
     abstract boolean eval(Environment environment);
+    abstract List<String> getSignalNames();
 }
 
 class Conjunction extends Expr{
@@ -26,6 +28,13 @@ class Conjunction extends Expr{
     public boolean eval(Environment environment){
         return ((e1.eval(environment)) && (e2.eval(environment)));
     }
+
+    public List<String> getSignalNames(){
+        List<String> sigNames = e1.getSignalNames();
+        sigNames.addAll(e2.getSignalNames());
+        return sigNames;
+    }
+
 }
 
 class Disjunction extends Expr{
@@ -35,6 +44,11 @@ class Disjunction extends Expr{
     public boolean eval(Environment environment){
         return ((e1.eval(environment)) || (e2.eval(environment)));
     }
+    public List<String> getSignalNames(){
+        List<String> sigNames = e1.getSignalNames();
+        sigNames.addAll(e2.getSignalNames());
+        return sigNames;
+    }
 }
 
 class Negation extends Expr{
@@ -43,10 +57,13 @@ class Negation extends Expr{
     public boolean eval(Environment environment){
         return (!e.eval(environment));
     }
+    public List<String> getSignalNames(){
+        return e.getSignalNames();
+    }
 }
 
 class Signal extends Expr{
-    String varname; // a signal is just identified by a name 
+    String varname; // a signal is just identified by a name
     Signal(String varname){this.varname=varname;}
     String getVarname(){
         return varname;
@@ -54,6 +71,12 @@ class Signal extends Expr{
 
     public boolean eval(Environment environment){
         return environment.getVariable(varname);
+        
+    }
+    public List<String> getSignalNames(){
+        List<String> sigName = new ArrayList();
+        sigName.add(varname);
+        return sigName;
     }
 }
 
@@ -85,6 +108,10 @@ class Update extends AST{
 
     public void eval(Environment environment){
         environment.setVariable(name, e.eval(environment));
+    }
+
+    public List<String> getExpressionSigNames(){
+        return e.getSignalNames();
     }
 }
 
@@ -118,13 +145,13 @@ class Trace extends AST{
 
 /* The main data structure of this simulator: the entire circuit with
    its inputs, outputs, latches, and updates. Additionally for each
-   input signal, it has a Trace as simulation input. 
-   
+   input signal, it has a Trace as simulation input.
+
    There are two variables that are not part of the abstract syntax
    and thus not initialized by the constructor (so far): simoutputs
    and simlength. It is suggested to use them for assignment 2 to
    implement the interpreter:
- 
+
    1. to have simlength as the length of the traces in siminputs. (The
    simulator should check they have all the same length and stop with
    an error otherwise.) Now simlength is the number of simulation
@@ -136,7 +163,7 @@ class Trace extends AST{
 */
 
 class Circuit extends AST{
-    String name; 
+    String name;
     List<String> inputs;
     List<String> outputs;
     List<Latch>  latches;
@@ -161,9 +188,10 @@ class Circuit extends AST{
 
     public void runSimulator(Environment environment){
         initialize(environment);
-
+        validateUpdates();
         for (int i = 0; i < simlength; i++){
             nextCycle(environment, i);
+
             validateSignals();
         }
         printOutputs();
@@ -175,14 +203,21 @@ class Circuit extends AST{
         }
         simlength = siminputs.get(0).values.length;
 
+        if(simlength == 0){
+            error("No values for siminput");
+        }
+
 
         for (Trace t : siminputs) {
+
             if (t.values[0] == null){
                 error("siminput 0-th value equals null");
             }
             if(t.values.length != simlength){
                 error("siminputs not same length!");
             }
+
+
             environment.setVariable(t.signal, t.values[0]);
         }
         for (Latch l : latches) {
@@ -224,7 +259,28 @@ class Circuit extends AST{
     }
 
     private void validateSignals(){
+        List<String> signals = new ArrayList<String>();
+        for (Trace t: siminputs) {
+            signals.add(t.signal);
+        }
+        for (Latch l: latches) {
+            signals.add(l.outputname);
+        }
+        for (Update u: updates) {
+            signals.add(u.name);
+        }
 
+        List<String> tempSignals = new ArrayList<String>();
+        for(String sig : signals){
+            if(tempSignals.contains(sig)){
+                error("Invalid signal \'" + sig + "\' Multiple occurences");
+            }
+            tempSignals.add(sig);
+        }
+
+
+
+        /*
         String[] inputArray = inputs.toArray(new String[0]);
         String[] updatesArray = new String[updates.size()];
         String[] latchesArray = new String[latches.size()];
@@ -237,25 +293,46 @@ class Circuit extends AST{
         }
 
         for(Trace sinput : siminputs){
-            boolean a = Arrays.asList(inputArray).contains(sinput.signal);
-            boolean b = Arrays.asList(updatesArray).contains(sinput.signal);
-            boolean c = Arrays.asList(latchesArray).contains(sinput.signal);
-            /*
-            boolean d = Arrays.asList(inputArray).contains(sinput.signal);
-            boolean e = Arrays.asList(updatesArray).contains(sinput.signal);
-            boolean f = Arrays.asList(latchesArray).contains(sinput.signal);
-            */
-            if( !(a || b || c) || ( a && b || a && c|| c && b) ){
+            int inpFreq = Collections.frequency(Arrays.asList(inputArray), sinput.signal);
+            int upFreq = Collections.frequency(Arrays.asList(updatesArray), sinput.signal);
+            int latFreq = Collections.frequency(Arrays.asList(latchesArray), sinput.signal);
+
+            System.out.println("====" + sinput.signal + "======");
+            System.out.println(inpFreq);
+            System.out.println(upFreq);
+            System.out.println(latFreq);
+            System.out.println("====");
+
+                                                    
+            if( (inpFreq + upFreq + latFreq) != 1){
                 error("Invalid signal!! " + sinput.signal);
             }
 
         }
-        /*
-        previousInputArray = inputArray
-        previousUpdatesArray = updatesArray
-        previousLatchesArray = latchesArray
 
          */
+
+
+    }
+
+    public void validateUpdates(){
+        List<String> previousOutputs = new ArrayList<String>();
+        List<String> latchOutputs = new ArrayList<String>();
+        for(Latch l : latches){
+            latchOutputs.add(l.outputname);
+        }
+        for(Update update : updates){
+            for(String sigName : update.getExpressionSigNames()){
+                boolean inInputs = inputs.contains(sigName);
+                boolean inLatchOutputs = latchOutputs.contains(sigName);
+                boolean inPrevUpdate = previousOutputs.contains(sigName);
+
+                if(!inInputs && !inLatchOutputs && !inPrevUpdate){
+                    error("Cyclic expresion in update! > " + sigName);
+                }
+            }
+            previousOutputs.add(update.name);
+        }
 
     }
 
