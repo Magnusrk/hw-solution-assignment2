@@ -192,7 +192,7 @@ class Circuit extends AST{
         for (int i = 0; i < simlength; i++){
             nextCycle(environment, i);
 
-            validateSignals();
+            validateSignals(environment);
         }
         printOutputs();
     }
@@ -258,20 +258,33 @@ class Circuit extends AST{
         //System.out.println(environment.toString());
     }
 
-    private void validateSignals(){
-        List<String> signals = new ArrayList<String>();
+    private void validateSignals(Environment environment){
+
+
+        List<String> actualSignals = new ArrayList<String>();
+        actualSignals.addAll(inputs);
+        /*
         for (Trace t: siminputs) {
-            signals.add(t.signal);
-        }
-        for (Latch l: latches) {
-            signals.add(l.outputname);
-        }
-        for (Update u: updates) {
-            signals.add(u.name);
+            actualSignals.add(t.signal);
         }
 
+         */
+        for (Latch l: latches) {
+            actualSignals.add(l.outputname);
+        }
+        for (Update u: updates) {
+            actualSignals.add(u.name);
+        }
+
+        for(String regSig : environment.getVariableNames()){
+            if(!actualSignals.contains(regSig)){
+                error("Invalid signal \'" + regSig + "\' Unused");
+            }
+        }
+
+
         List<String> tempSignals = new ArrayList<String>();
-        for(String sig : signals){
+        for(String sig : actualSignals){
             if(tempSignals.contains(sig)){
                 error("Invalid signal \'" + sig + "\' Multiple occurences");
             }

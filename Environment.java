@@ -1,5 +1,7 @@
 import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.ArrayList;
+import java.util.List;
 
 class Environment {
     private HashMap<String,Boolean> variableValues = new HashMap<String,Boolean>();
@@ -25,6 +27,14 @@ class Environment {
 	    table += entry.getKey() + "\t-> " + entry.getValue() + "\n";
 	}
 	return table;
-    }   
+    }
+
+	public List<String> getVariableNames(){
+		List<String> names = new ArrayList<String>();
+		for(Entry<String,Boolean> entry : variableValues.entrySet()){
+			names.add(entry.getKey());
+		}
+		return names;
+	}
 }
 

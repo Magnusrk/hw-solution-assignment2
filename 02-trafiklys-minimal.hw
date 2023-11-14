@@ -14,7 +14,7 @@ Red = !RedM && Button
 
 Green = Red
 PGreen = Red
-
+PRed = Red
 
 
 
@@ -27,5 +27,19 @@ PGreen = Red
 0111011010 Green
 0111011010 PRed
 1000100101 PGreen
+
+
+
+class Conjunction extends Expr{
+    Expr e1,e2;
+    Conjunction(Expr e1,Expr e2){this.e1=e1; this.e2=e2;}
+    public boolean eval(Environment environment){
+        return ((e1.eval(environment)) && (e2.eval(environment)));
+    }
+
+  ...
+
+}
+
 
 */
